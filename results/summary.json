@@ -1,0 +1,36 @@
+{
+  "instance": "C101",
+  "n_customers": 25,
+  "hv_reference_point": [
+    750.0,
+    12.0
+  ],
+  "baseline": {
+    "f1": 556.5083884521177,
+    "f2": 10
+  },
+  "ga_5seeds": {
+    "f1_mean": 306.0092615259408,
+    "f1_std": 24.616661221845803,
+    "f2_mean": 4.4,
+    "f2_std": 0.48989794855663565,
+    "f1_best": 266.0757312127207
+  },
+  "nsga2_cp2_front_30gen": {
+    "hv": 1280.72,
+    "n_solutions": 3
+  },
+  "nsga2_cold_80gen": {
+    "hv": 1901.819959038075,
+    "n_solutions": 2,
+    "f1_min": 420.53703380751057,
+    "f2_min": 6
+  },
+  "nsga2_warmstart_80gen": {
+    "hv": 3871.3941502982343,
+    "n_solutions": 1,
+    "f1_min": 266.0757312127207,
+    "f2_min": 4,
+    "hv_gain_vs_cold_pct": 103.56259970351525
+  }
+}
