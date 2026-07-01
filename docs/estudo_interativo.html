@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VRPTW Multiobjetivo — Guia de Defesa Interativo</title>
+<style>
+:root{
+  --bg:#0b0f1a;
+  --bg-alt:#10162a;
+  --card:#141b2f;
+  --card-hover:#1a2340;
+  --border:#232c48;
+  --text:#e7ecf7;
+  --text-dim:#94a1c0;
+  --text-dimmer:#5f6b8c;
+  --accent:#6d6ff2;
+  --accent-2:#22d3ee;
+  --accent-3:#34d399;
+  --warn:#fbbf24;
+  --danger:#f87171;
+  --radius:16px;
+  --radius-sm:10px;
+  --maxw:1120px;
+  font-size:16px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:radial-gradient(1200px 800px at 10% -10%, #17204a 0%, transparent 60%),
+             radial-gradient(1000px 700px at 100% 0%, #0f2a3a 0%, transparent 55%),
+             var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.55;
+  min-height:100vh;
+}
+a{color:var(--accent-2);}
+::selection{background:var(--accent);color:#fff;}
+
+/* ---------- layout ---------- */
+.app{display:flex;flex-direction:column;min-height:100vh;}
+header.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(11,15,26,0.85);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
+.topbar-inner{
+  max-width:var(--maxw);margin:0 auto;padding:14px 20px;
+  display:flex;flex-wrap:wrap;align-items:center;gap:14px;justify-content:space-between;
+}
+.brand{display:flex;flex-direction:column;gap:2px;}
+.brand .title{font-weight:800;font-size:1.05rem;letter-spacing:.2px;}
+.brand .subtitle{font-size:.78rem;color:var(--text-dim);}
+nav.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
+nav.tabs::-webkit-scrollbar{display:none;}
+nav.tabs button{
+  white-space:nowrap;
+  background:transparent;border:1px solid transparent;color:var(--text-dim);
+  padding:9px 14px;border-radius:999px;font-size:.85rem;font-weight:600;cursor:pointer;
+  transition:all .2s ease;
+}
+nav.tabs button:hover{color:var(--text);background:var(--card);}
+nav.tabs button.active{
+  background:linear-gradient(135deg,var(--accent),#4746c4);
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 18px -4px rgba(109,111,242,.6);
+}
+
+main{flex:1;max-width:var(--maxw);width:100%;margin:0 auto;padding:28px 20px 80px;}
+.view{display:none;animation:fadeIn .35s ease;}
+.view.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.view-head{margin-bottom:22px;}
+.view-head h1{font-size:1.5rem;margin:0 0 6px;}
+.view-head p{color:var(--text-dim);margin:0;font-size:.92rem;max-width:70ch;}
+
+/* ---------- generic components ---------- */
+.card{
+  background:linear-gradient(180deg,var(--card),var(--bg-alt));
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;
+}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(109,111,242,.14);color:var(--accent-2);
+  border:1px solid rgba(109,111,242,.3);
+  font-size:.72rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+  padding:4px 10px;border-radius:999px;
+}
+.btn{
+  border:1px solid var(--border);background:var(--card);color:var(--text);
+  padding:9px 16px;border-radius:10px;font-weight:600;font-size:.85rem;cursor:pointer;
+  transition:all .15s ease;
+}
+.btn:hover{border-color:var(--accent);color:#fff;background:var(--card-hover);}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#4746c4);border-color:transparent;color:#fff;}
+.btn.primary:hover{filter:brightness(1.1);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+/* ---------- accordion ---------- */
+.accordion-item{border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:10px;overflow:hidden;background:var(--card);}
+.accordion-header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;cursor:pointer;user-select:none;
+}
+.accordion-header:hover{background:var(--card-hover);}
+.accordion-header .htitle{font-weight:700;font-size:.94rem;display:flex;align-items:center;gap:10px;}
+.accordion-chevron{transition:transform .3s ease;color:var(--text-dim);flex:none;}
+.accordion-item.open .accordion-chevron{transform:rotate(180deg);color:var(--accent-2);}
+.accordion-body-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s ease;}
+.accordion-item.open .accordion-body-wrap{grid-template-rows:1fr;}
+.accordion-body-inner{overflow:hidden;}
+.accordion-body{padding:0 16px 16px;color:var(--text-dim);font-size:.88rem;}
+.accordion-body b, .accordion-body strong{color:var(--text);}
+
+/* ---------- fundamentos ---------- */
+.timeline{position:relative;padding-left:26px;}
+.timeline::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;background:linear-gradient(var(--accent),var(--accent-2));opacity:.35;}
+.tstep{position:relative;margin-bottom:14px;}
+.tstep::before{
+  content:attr(data-n);
+  position:absolute;left:-26px;top:14px;width:20px;height:20px;
+  background:var(--bg);border:2px solid var(--accent);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:800;color:var(--accent-2);
+}
+.tstep .card{padding:16px 18px;}
+.tstep h3{margin:0 0 8px;font-size:1rem;}
+.analogy{
+  background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.25);
+  border-radius:10px;padding:10px 12px;margin:10px 0;font-size:.85rem;color:#c9f3fd;
+}
+.analogy b{color:var(--accent-2);}
+.explain{font-size:.88rem;color:var(--text-dim);margin:8px 0;}
+.connect{font-size:.82rem;color:var(--accent-3);border-top:1px dashed var(--border);padding-top:8px;margin-top:10px;}
+
+/* ---------- glossario ---------- */
+.gloss-controls{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.search-box{
+  flex:1;min-width:220px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;
+}
+.search-box input{background:transparent;border:none;outline:none;color:var(--text);width:100%;font-size:.9rem;}
+.search-box svg{flex:none;color:var(--text-dim);}
+.gloss-cat{margin-bottom:22px;}
+.gloss-cat h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.6px;color:var(--text-dimmer);margin:0 0 10px;}
+.term-tag{color:var(--accent-2);font-weight:800;}
+.gloss-empty{color:var(--text-dim);padding:30px;text-align:center;border:1px dashed var(--border);border-radius:var(--radius);}
+
+/* ---------- raio-x ---------- */
+.slide-picker{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;margin-bottom:20px;}
+.slide-picker button{
+  flex:none;width:42px;height:42px;border-radius:12px;border:1px solid var(--border);
+  background:var(--card);color:var(--text-dim);font-weight:800;cursor:pointer;font-size:.85rem;
+  transition:all .15s ease;
+}
+.slide-picker button:hover{color:var(--text);}
+.slide-picker button.active{background:linear-gradient(135deg,var(--accent),#4746c4);color:#fff;border-color:transparent;}
+
+.slide-mock{
+  background:linear-gradient(155deg,#1c2550,#0e1326 70%);
+  border:1px solid var(--border);border-radius:18px;padding:26px 28px;
+  position:relative;overflow:hidden;min-height:220px;
+}
+.slide-mock::after{content:"";position:absolute;inset:0;background:radial-gradient(500px 250px at 100% 0%, rgba(34,211,238,.12), transparent 60%);}
+.slide-mock .kicker{position:relative;font-size:.72rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--accent-2);font-weight:800;margin-bottom:10px;}
+.slide-mock h2{position:relative;margin:0 0 14px;font-size:1.3rem;}
+.slide-mock ul{position:relative;margin:0;padding-left:20px;color:#dbe2f5;font-size:.88rem;display:flex;flex-direction:column;gap:7px;}
+.slide-mock ul li::marker{color:var(--accent-2);}
+
+.raiox-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:20px;}
+@media(min-width:860px){.raiox-grid{grid-template-columns:1fr 1fr;}}
+.rx-block h3{
+  display:flex;align-items:center;gap:8px;font-size:.82rem;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--text-dimmer);margin:0 0 10px;
+}
+.rx-block .card{font-size:.92rem;color:#d8dff2;}
+.qa-item{border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;background:var(--card);}
+.qa-item .q{font-weight:700;font-size:.9rem;display:flex;gap:8px;margin-bottom:4px;}
+.qa-item .q .qnum{color:var(--danger);}
+.qa-reveal-btn{font-size:.78rem;color:var(--accent-2);background:none;border:none;cursor:pointer;padding:4px 0;font-weight:700;}
+.qa-answer{display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);color:var(--text-dim);font-size:.87rem;}
+.qa-answer.show{display:block;}
+.notes-box{margin-top:18px;font-size:.82rem;color:var(--text-dimmer);border-left:2px solid var(--border);padding-left:12px;}
+
+/* ---------- active recall ---------- */
+.subtabs{display:flex;gap:8px;margin-bottom:20px;}
+.subtabs button{
+  background:var(--card);border:1px solid var(--border);color:var(--text-dim);
+  padding:8px 16px;border-radius:10px;font-weight:700;font-size:.85rem;cursor:pointer;
+}
+.subtabs button.active{background:var(--accent);color:#fff;border-color:transparent;}
+.recall-pane{display:none;}
+.recall-pane.active{display:block;}
+
+.flash-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;}
+.flash-progress{color:var(--text-dim);font-size:.82rem;}
+.flashcard{width:100%;max-width:560px;height:260px;perspective:1400px;cursor:pointer;}
+.flashcard-inner{position:relative;width:100%;height:100%;transition:transform .5s cubic-bezier(.4,.2,.2,1);transform-style:preserve-3d;}
+.flashcard.flipped .flashcard-inner{transform:rotateY(180deg);}
+.flashcard-face{
+  position:absolute;inset:0;backface-visibility:hidden;border-radius:20px;
+  display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;
+  border:1px solid var(--border);font-size:1.05rem;font-weight:600;
+}
+.flashcard-front{background:linear-gradient(155deg,#1c2550,#101632);}
+.flashcard-back{background:linear-gradient(155deg,#173327,#0e1a22);transform:rotateY(180deg);color:#d8f7e8;font-weight:500;font-size:.95rem;}
+.flashcard-face .tag{position:absolute;top:14px;left:18px;font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dimmer);}
+.flash-controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.flash-mastery{display:flex;gap:10px;}
+.flash-mastery button.know{border-color:var(--accent-3);color:var(--accent-3);}
+.flash-mastery button.dontknow{border-color:var(--danger);color:var(--danger);}
+.flash-filter{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--text-dim);}
+
+.quiz-card .qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.quiz-progress-bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:18px;}
+.quiz-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .3s ease;}
+.quiz-question{font-size:1.02rem;font-weight:700;margin-bottom:16px;}
+.quiz-options{display:flex;flex-direction:column;gap:10px;}
+.quiz-opt{
+  text-align:left;padding:13px 16px;border-radius:12px;border:1px solid var(--border);
+  background:var(--card);color:var(--text);cursor:pointer;font-size:.9rem;transition:all .15s ease;
+}
+.quiz-opt:hover:not(:disabled){border-color:var(--accent);}
+.quiz-opt.correct{border-color:var(--accent-3);background:rgba(52,211,153,.12);color:#c9f7e3;}
+.quiz-opt.incorrect{border-color:var(--danger);background:rgba(248,113,113,.12);color:#fbd5d5;}
+.quiz-opt:disabled{cursor:default;}
+.quiz-explain{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--bg-alt);border:1px solid var(--border);font-size:.86rem;color:var(--text-dim);}
+.quiz-score{text-align:center;padding:30px 20px;}
+.quiz-score .big{font-size:2.6rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent-2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+
+footer{border-top:1px solid var(--border);padding:24px 20px;text-align:center;color:var(--text-dimmer);font-size:.78rem;}
+
+@media(max-width:600px){
+  .topbar-inner{flex-direction:column;align-items:flex-start;}
+  nav.tabs{width:100%;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="title">VRPTW Multiobjetivo — Guia de Defesa</div>
+        <div class="subtitle">INF0415 · UFG · 2026/1 — material de estudo interativo</div>
+      </div>
+      <nav class="tabs" id="mainTabs">
+        <button data-view="fundamentos" class="active">1. Fundamentos</button>
+        <button data-view="glossario">2. Glossário</button>
+        <button data-view="raiox">3. Raio-X dos Slides</button>
+        <button data-view="recall">4. Active Recall</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-fundamentos" class="view active">
+      <div class="view-head">
+        <h1>Trilha de Fundamentos</h1>
+        <p>Do zero absoluto até o warm-start: cada passo parte de uma analogia do mundo real e termina mostrando exatamente onde aquilo aparece no projeto.</p>
+      </div>
+      <div class="timeline" id="fundamentosTimeline"></div>
+    </section>
+
+    <section id="view-glossario" class="view">
+      <div class="view-head">
+        <h1>Glossário de Jargões</h1>
+        <p>Todo termo técnico, biblioteca e sigla usados nos slides e no código. Clique para expandir.</p>
+      </div>
+      <div class="gloss-controls">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="glossSearch" type="text" placeholder="Buscar termo (ex: crowding, DEAP, Pareto)...">
+        </div>
+        <button class="btn" id="glossExpandAll">Expandir tudo</button>
+      </div>
+      <div id="glossContainer"></div>
+    </section>
+
+    <section id="view-raiox" class="view">
+      <div class="view-head">
+        <h1>Raio-X dos Slides</h1>
+        <p>Engenharia reversa slide a slide: o que está escrito, o que isso realmente significa, o que falar em voz alta, e as perguntas difíceis que a banca pode fazer.</p>
+      </div>
+      <div class="slide-picker" id="slidePicker"></div>
+      <div id="slideDetail"></div>
+    </section>
+
+    <section id="view-recall" class="view">
+      <div class="view-head">
+        <h1>Zona de Active Recall</h1>
+        <p>Teste-se de verdade. Não vale espiar antes de tentar responder.</p>
+      </div>
+      <div class="subtabs" id="recallTabs">
+        <button data-pane="flash" class="active">Flashcards</button>
+        <button data-pane="quiz">Quiz</button>
+      </div>
+
+      <div class="recall-pane active" id="pane-flash">
+        <div class="flash-wrap">
+          <div class="flash-progress" id="flashProgress"></div>
+          <div class="flashcard" id="flashcard">
+            <div class="flashcard-inner">
+              <div class="flashcard-face flashcard-front"><span class="tag">Pergunta</span><div id="flashQ"></div></div>
+              <div class="flashcard-face flashcard-back"><span class="tag">Resposta</span><div id="flashA"></div></div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn" id="flashPrev">◀ Anterior</button>
+            <button class="btn primary" id="flashFlip">Virar carta</button>
+            <button class="btn" id="flashNext">Próxima ▶</button>
+            <button class="btn" id="flashShuffle">Embaralhar</button>
+          </div>
+          <div class="flash-mastery">
+            <button class="btn dontknow" id="flashDontKnow">Ainda não sei</button>
+            <button class="btn know" id="flashKnow">Já sei essa</button>
+          </div>
+          <label class="flash-filter"><input type="checkbox" id="flashFilterUnknown"> Revisar só as que eu ainda não sei</label>
+        </div>
+      </div>
+
+      <div class="recall-pane" id="pane-quiz">
+        <div class="card quiz-card" id="quizCard"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Material gerado a partir do código-fonte (src/, scripts/), do relatório técnico e dos slides do projeto — use como apoio de estudo, não como substituto de entender o próprio código.</footer>
+</div>
+
+<script>
+/* ================= DATA ================= */
+
+const FUNDAMENTOS = [
+{
+  title:"O que é um 'problema de otimização'?",
+  analogy:"Escolher o caminho mais rápido para o trabalho: você não testa literalmente todas as ruas da cidade, mas está, no fundo, procurando a opção que minimiza uma medida (tempo).",
+  explain:"Otimizar é escolher, entre várias opções possíveis, a que minimiza (ou maximiza) uma medida de interesse. No projeto, as opções são formas diferentes de organizar as rotas, e as medidas são distância total e número de veículos.",
+  connect:"No projeto: minimizar f1 (distância) e f2 (número de veículos) ao mesmo tempo."
+},
+{
+  title:"Por que o VRPTW é NP-difícil?",
+  analogy:"É como tentar abrir um cadeado de 25 discos testando toda combinação possível: o número de tentativas cresce tão rápido que nem o computador mais rápido do mundo consegue testar todas a tempo.",
+  explain:"O número de formas de ordenar 25 clientes em rotas cresce de forma fatorial (25! é um número absurdamente maior que a quantidade de estrelas do universo observável). Não existe algoritmo conhecido que resolva o caso geral em tempo viável garantindo a solução ótima — por isso o projeto usa heurísticas e metaheurísticas, que buscam soluções muito boas, não necessariamente as ótimas comprovadas.",
+  connect:"É por isso que o projeto nunca tenta 'força bruta': usa Clarke-Wright, GA e NSGA-II, todos heurísticos."
+},
+{
+  title:"Do Caixeiro-Viajante ao VRP",
+  analogy:"Um entregador sozinho, visitando todos os endereços numa única volta (caixeiro-viajante), vira uma frota de entregadores dividindo os clientes entre si e voltando todos para o mesmo depósito.",
+  explain:"O VRP (Vehicle Routing Problem) generaliza o clássico TSP (Traveling Salesman Problem) para múltiplos veículos que partem e retornam a um depósito comum, cada um cobrindo um subconjunto dos clientes.",
+  connect:"No projeto, o depósito é o nó 0; cada 'rota' dentro da solução final é essencialmente um mini caixeiro-viajante."
+},
+{
+  title:"Adicionando restrições reais: capacidade e janelas de tempo",
+  analogy:"É como agendar consultas médicas: cada paciente só pode ser atendido dentro de um horário específico, e cada médico só atende até sua capacidade diária de pacientes.",
+  explain:"Cada cliente tem uma demanda (quanto 'peso' ele ocupa no veículo) que, somada às demandas dos outros clientes da mesma rota, não pode ultrapassar a capacidade do veículo Q. Além disso, cada cliente só pode ser atendido dentro de uma janela [eᵢ, lᵢ]: chegar antes de eᵢ significa esperar; chegar depois de lᵢ é infactível.",
+  connect:"Instância C101 usada no projeto: capacidade Q = 200, 25 clientes, cada um com sua própria janela [eᵢ, lᵢ]."
+},
+{
+  title:"Como representar uma solução no computador? Giant-tour",
+  analogy:"Escrever a lista de todos os convidados de uma festa numa única fila, sem ainda decidir em quais 'mesas' (rotas) eles vão sentar.",
+  explain:"Em vez de variáveis binárias xᵢⱼₖ (indicando se o veículo k vai do cliente i ao j — a formulação matemática 'clássica'), o projeto representa uma solução como uma simples permutação dos clientes, sem marcadores de onde uma rota termina e outra começa. Essa permutação é chamada de 'giant-tour'.",
+  connect:"src/instance.py: a solução é uma lista list[int] com os IDs dos clientes em alguma ordem."
+},
+{
+  title:"Split decoder: cortando a fila em rotas viáveis",
+  analogy:"Um segurança deixa as pessoas entrarem em um ônibus até ele lotar (capacidade) ou passar do horário combinado (janela de tempo); quando isso acontece, chama outro ônibus para o restante da fila.",
+  explain:"O split decoder percorre a permutação (giant-tour) sequencialmente, cliente a cliente, e fecha a rota atual — abrindo outra a partir do depósito — sempre que incluir o próximo cliente violaria a capacidade do veículo OU a janela de tempo dele. O resultado é sempre uma lista de rotas 100% viáveis.",
+  connect:"src/instance.py → split_into_routes(): é essa função que transforma a permutação abstrata em rotas concretas de depósito-clientes-depósito."
+},
+{
+  title:"Heurística construtiva: Clarke & Wright (Savings)",
+  analogy:"Dois amigos que moram perto e vão para o mesmo lugar decidem dividir um único táxi em vez de pegar dois separados — a 'economia' de juntar as duas corridas em uma só.",
+  explain:"O algoritmo parte de uma rota por cliente (veículo dedicado) e calcula a 'economia' de fundir cada par de rotas: savings(i,j) = d(0,i) + d(0,j) − d(i,j). Em seguida, tenta as fusões em ordem decrescente de economia, aceitando apenas as que continuam respeitando capacidade e janela de tempo.",
+  connect:"src/baseline.py → clarke_wright(): usado como ponto de partida de referência (baseline) e, mais tarde, como uma das 'sementes' do warm-start."
+},
+{
+  title:"Metaheurísticas: Algoritmo Genético (GA)",
+  analogy:"Melhoramento de plantas: você cruza as 'plantas-mãe' mais fortes entre si, de vez em quando introduz uma mutação aleatória, e repete o processo por várias 'gerações' até obter plantas cada vez melhores.",
+  explain:"O GA mantém uma população de soluções (permutações). A cada geração, seleciona as melhores (torneio), cruza pares delas (crossover OX, que preserva blocos de adjacência sem gerar clientes duplicados) e aplica mutações aleatórias de baixa probabilidade, sempre preservando o melhor indivíduo já encontrado (elitismo).",
+  connect:"src/ga.py, biblioteca DEAP: fitness = f1 + 50×f2, pop=120, 150 gerações."
+},
+{
+  title:"O problema de somar objetivos com pesos fixos",
+  analogy:"Comparar preço e potência de dois carros usando uma 'taxa de câmbio' inventada entre reais e cavalos de potência — a resposta muda completamente dependendo da taxa escolhida, e você nunca chega a ver as outras opções que ficaram de fora.",
+  explain:"O GA single-objective usa fitness = f1 + 50×f2 — um peso (50) escolhido arbitrariamente. Isso funciona, mas devolve apenas UM ponto de resposta, escondendo todo o resto do espaço de soluções possíveis (por exemplo, uma solução com mais veículos mas bem menos distância nunca é considerada 'melhor' por essa fórmula, mesmo que seja útil para algum gestor).",
+  connect:"É exatamente essa limitação que justifica migrar para o NSGA-II no Checkpoint 2."
+},
+{
+  title:"Dominância de Pareto e a Fronteira",
+  analogy:"Escolher um carro: não existe 'o melhor carro do mundo', existe um conjunto de carros cada um bom em um aspecto diferente (um mais barato, outro mais rápido). Um carro 'dominado' é pior em tudo e melhor em nada — ninguém racionalmente o escolheria.",
+  explain:"Uma solução A domina B se A é igual ou melhor que B em TODOS os objetivos e estritamente melhor em PELO MENOS um. A fronteira de Pareto é o conjunto de soluções não-dominadas — as únicas que são, de alguma forma, 'competitivas'. Não existe uma única resposta certa; existe um conjunto de boas respostas, cada uma com um trade-off diferente.",
+  connect:"É o que o NSGA-II devolve no final: não um número, mas uma fronteira inteira de (f1, f2)."
+},
+{
+  title:"NSGA-II: o Algoritmo Genético adaptado para múltiplos objetivos",
+  analogy:"Um comitê de jurados que primeiro separa os candidatos em 'camadas de qualidade' (quem não é claramente pior que ninguém vai para a camada 1) e, para desempatar dentro da mesma camada, prefere quem é mais 'diferente' dos já escolhidos — evitando aprovar 10 clones parecidos.",
+  explain:"NSGA-II usa dois mecanismos principais: (1) ordenação por não-dominância, que separa a população em 'fronts' (camadas) e cuida da convergência para perto do ótimo; (2) crowding distance, que mede o quão 'espaçado' um indivíduo está dos vizinhos dentro do mesmo front, e é usada como critério de desempate para preservar diversidade — cobrindo bem toda a fronteira, não só um pedaço dela.",
+  connect:"src/nsga2.py, biblioteca pymoo: otimiza (f1, f2) simultaneamente com Order Crossover + Inversion Mutation."
+},
+{
+  title:"Warm-start e Hypervolume: acelerando e medindo o progresso",
+  analogy:"Warm-start é como começar uma corrida de revezamento já com o bastão na mão de um corredor rápido, em vez de largar todo mundo do zero. Hypervolume é como medir 'quanto território uma expedição conquistou' num mapa — permite comparar duas expedições diferentes com um único número justo.",
+  explain:"Warm-start (diferencial D2) semeia 25% da população inicial do NSGA-II com soluções já conhecidas como boas (a rota do Clarke-Wright e a melhor solução do GA), mantendo os outros 75% aleatórios para não perder diversidade. Hypervolume mede a área do espaço de objetivos dominada pela fronteira encontrada, em relação a um ponto de referência fixo — quanto maior a área, melhor (e mais justa a comparação) entre execuções diferentes.",
+  connect:"Resultado do projeto: HV passa de 1.901,8 (sem warm-start) para 3.871,4 (com warm-start) em 80 gerações — um ganho de +103,6%."
+}
+];
+
+const GLOSSARY = [
+{cat:"Fundamentos do problema", items:[
+  {term:"VRPTW", what:"Vehicle Routing Problem with Time Windows — Problema de Roteamento de Veículos com Janelas de Tempo.", why:"É o problema central do projeto: decidir quais rotas cada veículo percorre e em que ordem, respeitando capacidade e horários de atendimento.", how:"'Um problema clássico de logística: como organizar a frota de entrega para atender todo mundo dentro do horário combinado, gastando o mínimo possível.'"},
+  {term:"NP-difícil", what:"Classe de problemas para os quais não se conhece algoritmo que garanta a solução ótima em tempo viável, à medida que o tamanho da entrada cresce.", why:"Justifica por que o projeto usa heurísticas/metaheurísticas em vez de tentar todas as combinações possíveis.", how:"'O número de formas de organizar as rotas cresce tão rápido que testar todas seria inviável mesmo com 25 clientes — por isso usamos algoritmos que buscam ótimos muito bons, não garantidamente perfeitos.'"},
+  {term:"Instância Solomon / C101", what:"Conjunto padrão de dados de teste para VRPTW, criado por M. Solomon (1987); C101 é um dos cenários clássicos, com clientes agrupados em clusters.", why:"É a base de dados usada em todos os experimentos do projeto, reduzida aos 25 primeiros clientes por orçamento de tempo computacional.", how:"'Usamos um benchmark acadêmico padrão da área, para que os resultados sejam comparáveis com a literatura.'"},
+  {term:"Depósito", what:"O nó 0 da instância — ponto único de origem e destino de todas as rotas da frota.", why:"Toda rota começa e termina nele; é a referência para calcular distância percorrida.", how:"'É o centro de distribuição — todo caminhão sai de lá e precisa voltar para lá no fim do dia.'"},
+  {term:"Capacidade do veículo (Q)", what:"Quantidade máxima de demanda que um único veículo pode carregar (Q=200 na instância usada).", why:"Restringe quantos clientes cabem em uma mesma rota — é verificada a cada passo do split decoder.", how:"'Cada caminhão tem um limite de carga; se ultrapassar, precisamos de outro caminhão.'"},
+  {term:"Janela de tempo [eᵢ, lᵢ]", what:"Intervalo de tempo em que o cliente i pode ser atendido: eᵢ = início (ready), lᵢ = fim (due).", why:"Chegadas antes de eᵢ fazem o veículo esperar; chegadas depois de lᵢ são infactíveis e forçam uma nova rota.", how:"'É como um horário de consulta marcado — o entregador pode chegar cedo e esperar, mas não pode chegar depois do prazo.'"},
+  {term:"f1 (distância total)", what:"Soma da distância euclidiana percorrida por todos os veículos, em todas as rotas.", why:"Primeiro objetivo a minimizar — representa custo de combustível/tempo de deslocamento.", how:"'Quanto, no total, a frota inteira andou para atender todo mundo.'"},
+  {term:"f2 (número de veículos)", what:"Quantidade de rotas (veículos) usadas na solução.", why:"Segundo objetivo a minimizar — representa custo fixo por veículo (motorista, manutenção, aluguel).", how:"'Quantos caminhões precisamos colocar na rua.'"},
+  {term:"f3 (desbalanceamento de carga)", what:"Desvio-padrão da carga (ocupação) entre os veículos usados — diferencial ético D6.", why:"Implementado em instance.py e disponível em nsga2.py (use_f3_ethics=True), mas mantido desativado por padrão — os checkpoints reportam apenas (f1, f2).", how:"'Medimos o quão desigual é a carga entre os motoristas — implementamos, mas por escopo mantivemos fora dos resultados principais.'"},
+  {term:"Baseline", what:"Solução de referência simples, usada como piso de comparação para medir o quanto os métodos mais sofisticados melhoram.", why:"No projeto, o baseline é o Clarke-Wright — intencionalmente simples e não otimizado ao extremo.", how:"'É o nosso ponto de partida honesto: se um algoritmo mais complexo não bater isso, ele não vale o esforço.'"},
+  {term:"Trade-off", what:"Situação em que melhorar um objetivo piora outro — não existe solução que otimize os dois ao mesmo tempo.", why:"É o fenômeno central que motiva a formulação multiobjetivo: reduzir f2 tende a aumentar f1, e vice-versa.", how:"'Menos caminhões significa rotas mais longas para cada um — é um cabo de guerra entre os dois objetivos.'"}
+]},
+{cat:"Representação e decodificação", items:[
+  {term:"Giant-tour", what:"Representação de uma solução como uma única permutação de todos os clientes, sem marcadores de onde uma rota termina e outra começa.", why:"Permite usar operadores genéticos padrão de permutação (crossover, mutação) sem precisar evoluir explicitamente o número de rotas.", how:"'Em vez de já separar em rotas, escrevemos todos os clientes numa fila só — quem decide onde cortar é o decodificador.'"},
+  {term:"Split decoder", what:"Procedimento guloso que percorre o giant-tour e decide onde 'cortar' para formar rotas viáveis, respeitando capacidade e janela de tempo.", why:"É a ponte entre a representação abstrata (permutação) e uma solução real e sempre factível (rotas concretas).", how:"'É o algoritmo que lê a fila de clientes e vai formando os caminhões, fechando um e abrindo outro sempre que o próximo cliente não couber.'"},
+  {term:"Representação indireta", what:"Estratégia de codificar a solução em uma forma diferente da estrutura final (ex: permutação em vez de rotas), usando um decodificador para converter uma na outra.", why:"Simplifica os operadores de busca (crossover/mutação) e garante viabilidade estrutural sem penalizações artificiais.", how:"'Deixamos a parte difícil (garantir viabilidade) para um algoritmo determinístico simples, e deixamos o algoritmo genético focar só em encontrar boas ordens de visita.'"}
+]},
+{cat:"Heurística construtiva", items:[
+  {term:"Clarke & Wright (Savings)", what:"Heurística construtiva clássica (1964) que começa com uma rota por cliente e funde pares de rotas pela maior 'economia' de distância.", why:"Usado como baseline (referência simples) e como uma das duas soluções 'semente' do warm-start.", how:"'É um algoritmo clássico dos anos 60: começa com um caminhão por cliente e vai juntando rotas sempre que isso economiza distância.'"},
+  {term:"savings(i,j)", what:"Fórmula da economia de unir as rotas de i e j: d(0,i) + d(0,j) − d(i,j).", why:"Determina a ordem em que as fusões de rotas são tentadas no Clarke-Wright (da maior economia para a menor).", how:"'É a distância que a gente deixa de percorrer se, em vez de ir e voltar ao depósito duas vezes, o mesmo caminhão visitar os dois clientes seguidos.'"}
+]},
+{cat:"Algoritmo Genético (GA)", items:[
+  {term:"Algoritmo Genético (GA)", what:"Metaheurística inspirada na evolução biológica: mantém uma população de soluções que evolui por seleção, cruzamento e mutação ao longo de gerações.", why:"Usado no Checkpoint 1 como abordagem single-objective, evoluindo permutações (giant-tours) para minimizar fitness = f1 + 50×f2.", how:"'Simulamos evolução: começamos com soluções aleatórias e vamos cruzando as melhores entre si, geração após geração, até melhorar bastante.'"},
+  {term:"DEAP", what:"Biblioteca Python ('Distributed Evolutionary Algorithms in Python') para construir algoritmos evolutivos.", why:"Usada para implementar o GA single-objective (src/ga.py): fornece as estruturas de indivíduo, população e os operadores genéticos.", how:"'É a biblioteca Python que nos dá os blocos de construção prontos para montar o algoritmo genético — crossover, mutação, seleção — sem reescrever tudo do zero.'"},
+  {term:"Indivíduo / Cromossomo", what:"Uma solução candidata dentro da população do GA — no projeto, uma permutação de clientes (giant-tour).", why:"É a unidade que sofre seleção, crossover e mutação a cada geração.", how:"'Cada 'indivíduo' é uma possível ordem de visita completa dos 25 clientes.'"},
+  {term:"População", what:"Conjunto de indivíduos (soluções) mantidos simultaneamente pelo algoritmo evolutivo em uma geração.", why:"Tamanho definido como 120 no GA e no NSGA-II — quanto maior, mais diversidade, mas mais custo computacional.", how:"'É o conjunto de 120 soluções diferentes que o algoritmo mantém e evolui ao mesmo tempo, a cada rodada.'"},
+  {term:"Geração", what:"Uma iteração completa do laço evolutivo: seleção, crossover, mutação e avaliação de uma nova população.", why:"O GA roda 150 gerações; o NSGA-II roda 30 ou 80, dependendo do checkpoint.", how:"'Cada 'geração' é como uma rodada de evolução — quanto mais gerações, mais tempo o algoritmo teve para melhorar.'"},
+  {term:"Fitness / Função de aptidão", what:"Medida numérica de qualidade de um indivíduo, usada para guiar a seleção.", why:"No GA single-objective: fitness = f1 + 50×f2 (quanto menor, melhor).", how:"'É a nota que damos para cada solução — quanto menor a nota (nesse caso), melhor a solução.'"},
+  {term:"Crossover (OX — Ordered Crossover)", what:"Operador que combina dois indivíduos-pais para gerar filhos, preservando blocos de ordem relativa dos genes sem duplicar clientes.", why:"Necessário porque um crossover ingênuo (ponto único) geraria filhos com clientes repetidos ou faltando, quebrando a validade da permutação.", how:"'Pegamos um pedaço da rota de um pai e completamos com a ordem do outro pai, garantindo que nenhum cliente apareça duas vezes.'"},
+  {term:"Mutação (shuffle de índices)", what:"Operador que troca aleatoriamente a posição de alguns clientes na permutação, com baixa probabilidade (indpb=0.05).", why:"Introduz variabilidade extra na população, ajudando a escapar de ótimos locais.", how:"'De vez em quando, embaralhamos um pouco a ordem de alguns clientes, para o algoritmo não ficar preso na mesma solução.'"},
+  {term:"Seleção por torneio", what:"Método de seleção onde grupos aleatórios de k indivíduos (k=3) competem, e o melhor de cada grupo é escolhido para reprodução.", why:"Equilibra pressão seletiva (favorece os melhores) com diversidade (não escolhe sempre só o melhor absoluto).", how:"'Sorteamos 3 soluções por vez e deixamos a melhor delas 'vencer' e passar seus genes adiante.'"},
+  {term:"Elitismo", what:"Garantia de que o melhor indivíduo de uma geração é sempre preservado, sem risco de ser perdido por crossover/mutação.", why:"Assegura que o melhor fitness encontrado nunca piora ao longo das gerações.", how:"'Sempre guardamos uma cópia da melhor solução encontrada até agora, para não correr o risco de perdê-la por acidente.'"},
+  {term:"Semente aleatória (seed)", what:"Valor inicial usado para inicializar o gerador de números aleatórios, tornando os resultados reproduzíveis.", why:"O projeto roda 5 sementes diferentes (1 a 5) no GA para analisar variância entre execuções.", how:"'Como o algoritmo usa sorteios internos, rodamos ele várias vezes com 'sementes' diferentes para ver se o resultado é consistente ou se foi sorte.'"}
+]},
+{cat:"Multiobjetivo & NSGA-II", items:[
+  {term:"Multiobjetivo", what:"Formulação de otimização que busca melhorar dois ou mais objetivos simultaneamente, sem combiná-los em um único número.", why:"É o núcleo do Problema P1 do enunciado: distância e número de veículos são otimizados juntos, sem agregação.", how:"'Em vez de escolher um peso arbitrário entre os dois objetivos, deixamos o algoritmo explorar todo o espaço de soluções possíveis.'"},
+  {term:"NSGA-II", what:"Non-dominated Sorting Genetic Algorithm II — algoritmo genético multiobjetivo que usa ordenação por não-dominância e crowding distance.", why:"Implementa a otimização simultânea de (f1, f2) nos Checkpoints 2 e 3, devolvendo uma fronteira de Pareto.", how:"'É a versão do algoritmo genético adaptada para lidar com dois objetivos ao mesmo tempo, em vez de só um.'"},
+  {term:"pymoo", what:"Biblioteca Python para otimização multiobjetivo, com implementações prontas de NSGA-II e operadores de permutação.", why:"Usada para implementar o NSGA-II (src/nsga2.py) e calcular o Hypervolume.", how:"'É a biblioteca Python especializada em algoritmos multiobjetivo que usamos para não reimplementar o NSGA-II do zero.'"},
+  {term:"Fronteira de Pareto", what:"Conjunto de todas as soluções não-dominadas encontradas — cada uma representa um trade-off diferente entre os objetivos.", why:"É o resultado final entregue pelo NSGA-II, em vez de um único ponto de resposta.", how:"'É o 'cardápio' de boas soluções: cada uma equilibra distância e número de veículos de um jeito diferente, e cabe ao gestor escolher.'"},
+  {term:"Dominância / não-dominância", what:"A solução A domina B se A é igual ou melhor em todos os objetivos e estritamente melhor em pelo menos um; não-dominada = nenhuma outra a supera em tudo.", why:"Critério central usado pelo NSGA-II para classificar e ranquear soluções.", how:"'Uma solução só é descartada se existir outra que é igual ou melhor em tudo — e melhor em pelo menos uma coisa.'"},
+  {term:"Fast non-dominated sorting", what:"Procedimento do NSGA-II que separa a população em camadas ('fronts'), onde o front 1 contém as soluções não-dominadas por nenhuma outra.", why:"Controla a pressão de convergência do algoritmo — indivíduos de fronts melhores têm prioridade na seleção.", how:"'Separamos as soluções em 'níveis de qualidade' — quem está no nível 1 é o que não perde para ninguém.'"},
+  {term:"Crowding distance", what:"Medida de o quão 'espaçada' uma solução está em relação às vizinhas dentro do mesmo front, usada como critério de diversidade.", why:"Desempata soluções do mesmo front, evitando que a população colapse numa única região da fronteira.", how:"'Preferimos manter soluções bem espalhadas — evitando escolher só clones parecidos entre si — para representar toda a variedade de trade-offs.'"},
+  {term:"Order Crossover / Inversion Mutation (pymoo)", what:"Operadores de permutação nativos do pymoo usados no NSGA-II — equivalentes ao OX e a uma mutação por inversão de trecho.", why:"Substituem os operadores do DEAP no contexto multiobjetivo, mantendo a mesma lógica de preservar permutações válidas.", how:"'São os mesmos tipos de operador do GA (crossover e mutação para permutações), só que na versão pronta da biblioteca pymoo.'"},
+  {term:"Warm-start (D2)", what:"Diferencial do projeto: em vez de inicializar a população do NSGA-II 100% aleatória, 25% dos indivíduos iniciais são semeados com soluções já boas.", why:"Acelera fortemente a convergência — o HV mais que dobra (+103,6%) com o mesmo orçamento de gerações.", how:"'É como dar um empurrãozinho inicial ao algoritmo: começamos parte da população já perto de soluções boas conhecidas, em vez de começar tudo do zero.'"},
+  {term:"SeededPermutationSampling", what:"Classe Python (src/nsga2.py) que implementa o warm-start: gera a população inicial do NSGA-II combinando amostragem aleatória com as soluções-semente.", why:"É a peça de código que efetivamente implementa o diferencial D2.", how:"'É a função que criamos para 'plantar' as soluções boas na população inicial do NSGA-II — cerca de 15 linhas de código.'"}
+]},
+{cat:"Avaliação e métricas", items:[
+  {term:"Hypervolume (HV)", what:"Métrica padrão de qualidade de uma fronteira de Pareto: mede a área (ou volume, em mais dimensões) do espaço de objetivos dominada pela fronteira, em relação a um ponto de referência.", why:"Permite comparar objetivamente fronteiras diferentes (ex: com e sem warm-start) usando um único número — quanto maior, melhor.", how:"'É uma régua única que resume a qualidade de toda uma fronteira de soluções em um só número, juntando o quão boas E o quão diversas elas são.'"},
+  {term:"Ponto de referência (ref point)", what:"Ponto do espaço de objetivos, pior que todas as soluções observadas, usado como limite para o cálculo do Hypervolume — no projeto, r=(750, 12).", why:"Sem um ponto de referência fixo, a área calculada não tem um limite bem definido nem é comparável entre execuções diferentes.", how:"'É o 'pior caso possível' que usamos como referência para medir o quanto cada fronteira conseguiu se afastar dele, para melhor.'"},
+  {term:"Checkpoint (CP1, CP2, CP3, Final)", what:"Etapas de entrega progressiva do projeto: CP1 (modelagem+baseline+GA), CP2 (NSGA-II multiobjetivo), CP3 (warm-start), Final (Hypervolume consolidado).", why:"Estrutura a evolução incremental do trabalho, cada etapa validando uma camada antes de acrescentar complexidade.", how:"'Dividimos o projeto em entregas incrementais — cada uma adicionando uma capacidade nova em cima da anterior, já validada.'"},
+  {term:"numpy / matplotlib / pandas", what:"Bibliotecas Python de apoio: numpy para cálculo numérico/vetorial, matplotlib para gráficos, pandas para manipulação tabular de dados.", why:"Usadas em todo o projeto para cálculo de distâncias, geração dos gráficos de convergência/rotas/fronteira e leitura de CSVs de resultado.", how:"'São as ferramentas Python básicas de ciência de dados que usamos para calcular, organizar e visualizar os resultados.'"}
+]}
+];
+
+const SLIDES = [
+{
+  num:1, kicker:"CAPA", title:"Roteamento de Veículos com Janelas de Tempo",
+  subtitle:"Otimização multiobjetivo com GA, NSGA-II e Warm-start",
+  bullets:["INF0415 · UFG · 2026/1","Equipe: Henrique · Eduardo · Vitor · Antonio · João Henrique"],
+  notes:"Projeto sobre VRPTW. Vamos mostrar modelagem, algoritmos e resultados.",
+  translation:"É a capa: estabelece o problema (VRPTW), a formulação multiobjetivo, e os três pilares algorítmicos (GA, NSGA-II, Warm-start) que estruturam toda a apresentação — funciona como um roteiro do que vem a seguir.",
+  script:"Boa tarde, somos o grupo [nomes] e vamos apresentar nosso projeto de VRPTW multiobjetivo. Em uma frase: modelamos o roteamento de veículos com janelas de tempo como um problema de dois objetivos em conflito — distância total e número de veículos — usando um Algoritmo Genético como base, o NSGA-II para a busca multiobjetivo de fato, e um diferencial de warm-start que foi nossa contribuição própria.",
+  questions:[
+    {q:"Por que vocês escolheram tratar isso como multiobjetivo em vez de simplesmente otimizar uma soma ponderada?",
+     a:"Porque a soma ponderada exige decidir pesos/trade-off a priori e pode não enxergar partes não-convexas da fronteira; a busca multiobjetivo (NSGA-II) devolve a fronteira inteira, deixando o decisor escolher o trade-off a posteriori — mais geral e informativo, e alinhado ao foco da proposta em 'trade-offs reais de logística'."},
+    {q:"Qual é a motivação real / aplicação prática desse problema?",
+     a:"Empresas de logística/entrega precisam decidir quantos caminhões usar versus quanto cada um roda; o custo de um veículo extra (motorista, combustível, depreciação) compete com o custo de rotas mais longas. É um problema clássico de pesquisa operacional com impacto comercial direto — entrega de última milha, roteirização de ônibus escolares, etc."}
+  ]
+},
+{
+  num:2, kicker:"O PROBLEMA · 02", title:"O que é o VRPTW?",
+  bullets:[
+    "Depósito — 1 ponto central, origem de toda a frota",
+    "Clientes — 25 pontos a atender (instância Solomon C101)",
+    "Frota — veículos homogêneos, capacidade Q = 200",
+    "Janela — cada cliente só é atendido em [eᵢ, lᵢ]; chegar cedo espera, chegar tarde é infactível",
+    "Dois objetivos em conflito: f1 minimizar distância total · f2 minimizar número de veículos",
+    "Menos veículos → rotas mais longas → maior distância"
+  ],
+  notes:"Depósito, 25 clientes, frota com capacidade. Cada cliente tem janela de tempo. Minimizar distância E número de veículos — objetivos que conflitam.",
+  translation:"Definição formal dos quatro blocos do problema (depósito, clientes, frota, janelas) mais a tensão central que torna isso multiobjetivo — reduzir caminhões força rotas mais longas.",
+  script:"Nosso cenário: um depósito único, 25 clientes com demanda e horário de atendimento, e uma frota de veículos idênticos com capacidade 200. Cada cliente só pode ser atendido dentro da sua janela — chegar cedo, o veículo espera; chegar tarde, é infactível. E aqui está o ponto chave: queremos minimizar distância E número de veículos ao mesmo tempo, mas eles puxam em direções opostas.",
+  questions:[
+    {q:"O que acontece se um cliente não puder ser atendido dentro da janela por nenhuma rota — o modelo permite isso?",
+     a:"Nesta implementação, o split decoder trata qualquer chegada após o due time como infactível e fecha a rota ali mesmo, abrindo uma nova — então toda solução gerada é sempre viável em relação à janela de tempo por construção; não existe penalização explícita na função objetivo, a infactibilidade é resolvida estruturalmente."},
+    {q:"Por que a capacidade e a janela de tempo não entram como termos de penalização na função objetivo, e sim na decodificação?",
+     a:"Porque embutir a viabilidade no passo de decodificação garante que todo indivíduo avaliado pelo GA/NSGA-II seja sempre factível, evitando desperdiçar esforço de busca em soluções inválidas e eliminando a necessidade de calibrar pesos de penalização — uma decisão de design deliberada, descrita no relatório."}
+  ]
+},
+{
+  num:3, kicker:"REPRESENTAÇÃO · 03", title:"Giant-tour + Split",
+  bullets:[
+    "Permutação de clientes: 3 · 7 · 1 · 12 · 5 · 9 · 22 · 4 · …",
+    "Split decoder quebra a rota ao violar capacidade ou janela",
+    "Rota 1: ⌂→3→7→1→⌂ · Rota 2: ⌂→12→5→9→⌂ · Rota 3: ⌂→22→4→…→⌂",
+    "01 Não é preciso evoluir o número de rotas explicitamente",
+    "02 Crossover e mutação operam sobre permutações simples",
+    "03 Factibilidade garantida pela decodificação — sem penalização de restrições"
+  ],
+  notes:"Giant-tour: uma lista com a ordem de todos os clientes. O split decoder quebra em rotas quando violaria capacidade ou janela. Simplifica os operadores.",
+  translation:"É a decisão de modelagem mais importante do projeto: em vez da formulação clássica com variáveis binárias xᵢⱼₖ, usa-se uma codificação indireta (permutação 'giant-tour') e um decodificador guloso determinístico (split) que a transforma em rotas viáveis. Essa escolha é o que permite reaproveitar diretamente operadores padrão de GA para permutações (OX, swap) sem mecanismo de reparo.",
+  script:"Imaginem escrever todos os 25 clientes numa única fila, sem marcar onde uma rota termina e outra começa. Um algoritmo simples de varredura lê essa fila da esquerda para a direita e abre um novo caminhão sempre que o próximo cliente violaria capacidade ou chegaria atrasado. Isso é o giant-tour mais o split decoder — e é o que nos permite reaproveitar operadores genéticos de permutação prontos, sem inventar um crossover customizado para rotas.",
+  questions:[
+    {q:"O split decoder é guloso — ele garante a decodificação ótima daquela permutação em rotas, ou pode haver uma quebra melhor?",
+     a:"É uma heurística gulosa/sequencial, não ótima para uma permutação fixa — existem algoritmos de split ótimos (ex: formulações de caminho mínimo em grafo auxiliar, como o Split de Prins para VRP) que poderiam gerar um conjunto de rotas melhor para a mesma permutação. O projeto usa intencionalmente a versão linear mais simples, por simplicidade de implementação e velocidade dentro do orçamento de tempo — é uma simplificação documentada, não um erro de modelagem."},
+    {q:"Por que usar giant-tour em vez de modelar rotas diretamente (ex: lista de listas) como indivíduo do GA?",
+     a:"Uma permutação plana permite reaproveitar operadores genéricos e bem testados (crossover OX, mutação por troca/inversão) sem modificação; representar rotas diretamente exigiria um crossover customizado que mantivesse cada sub-rota válida e coordenasse o número de rotas entre os pais — muito mais complexo de implementar corretamente e mais sujeito a erros."}
+  ]
+},
+{
+  num:4, kicker:"METODOLOGIA · 04", title:"Quatro etapas",
+  bullets:[
+    "CP1 · Modelagem — Baseline Clarke-Wright + Algoritmo Genético",
+    "CP2 · Multiobjetivo — NSGA-II, 30 gerações (fronteira inicial)",
+    "CP3 · Diferencial — Warm-start no NSGA-II, 80 gerações",
+    "FINAL · Avaliação — Hypervolume como métrica de qualidade"
+  ],
+  notes:"Três checkpoints: modelagem + baseline + GA; depois NSGA-II; depois warm-start. Nesta entrega final acrescentamos o hypervolume.",
+  translation:"Mostra a estrutura de entrega incremental do curso (checkpoints), cada um adicionando uma camada: montar o modelo do problema + baseline simples + metaheurística single-objective; depois evoluir para busca multiobjetivo de verdade; depois acrescentar a melhoria própria do grupo (warm-start); e por fim fechar com uma forma rigorosa e quantitativa de comparar todas as fronteiras (Hypervolume).",
+  script:"Não construímos tudo de uma vez — cada checkpoint acrescentou uma capacidade nova: primeiro modelamos o problema e criamos um baseline simples mais um GA; depois evoluímos para o NSGA-II multiobjetivo; depois adicionamos nosso diferencial de warm-start; e na entrega final consolidamos tudo com o Hypervolume como métrica objetiva de comparação.",
+  questions:[
+    {q:"Por que fazer isso em etapas incrementais, e não implementar direto o NSGA-II com warm-start?",
+     a:"A entrega incremental permite validar a codificação/decodificação e as funções objetivo com um GA single-objective mais barato e fácil de depurar primeiro, capturando bugs na lógica compartilhada de instância/split cedo, em vez de escondê-los dentro de um algoritmo multiobjetivo mais complexo; também acompanha a estrutura de checkpoints de avaliação do curso."},
+    {q:"O que exatamente muda de implementação entre o Checkpoint 2 e o Checkpoint 3, além do número de gerações?",
+     a:"O CP2 usa população inicial 100% aleatória (30 gerações); o CP3 acrescenta a classe SeededPermutationSampling, que injeta a rota do Clarke-Wright e a melhor solução do GA em 25% da população inicial do NSGA-II, e roda 80 gerações — todo o resto (definição do problema, crossover, mutação, seleção) permanece igual, isolando o efeito do warm-start como um experimento controlado."}
+  ]
+},
+{
+  num:5, kicker:"BASELINE · 05", title:"Clarke & Wright — Savings",
+  bullets:[
+    "savings(i,j) = d(0,i) + d(0,j) − d(i,j)",
+    "1. Uma rota por cliente: ⌂→Cᵢ→⌂",
+    "2. Ordena as economias do maior para o menor",
+    "3. Funde se não violar capacidade nem janela",
+    "Baseline simples e intencional — fusão testada em uma só orientação. Não é o estado da arte.",
+    "Resultado: f1 = 556,5 · f2 = 10 veículos"
+  ],
+  notes:"Clarke & Wright, heurística clássica dos anos 60. Começa com um caminhão por cliente e funde rotas pela maior economia. 10 veículos, distância 556 — nossa referência mínima.",
+  translation:"Heurística construtiva clássica de 1964, usada puramente como piso/referência, não como concorrente a ser vencido com elegância — é intencionalmente a solução 'razoável mais fraca' contra a qual medimos o ganho das metaheurísticas.",
+  script:"O Clarke-Wright é uma heurística clássica dos anos 60. A ideia: quanto economizamos, em distância total, se em vez de dois caminhões saindo e voltando separadamente ao depósito para visitar i e j, um único caminhão visitar i e depois j direto? Fundimos rotas nessa ordem de economia, sempre respeitando capacidade e janela. O resultado — 556,5 de distância e 10 veículos — é a nossa referência mínima, que o GA depois reduz em 45%.",
+  questions:[
+    {q:"Por que a fusão só numa orientação é uma limitação — o que exatamente ela deixa passar?",
+     a:"O Clarke-Wright padrão tenta fundir tanto (fim de i, início de j) quanto a orientação invertida das rotas, ficando com a que for viável/melhor. Esta implementação só tenta uma orientação fixa, então perde fusões que só seriam viáveis ou melhores na direção invertida — está documentado no relatório como uma simplificação intencional que deixa o baseline mais fraco (um piso conservador e honesto), não o verdadeiro estado da arte do C&W."},
+    {q:"O resultado do baseline (10 veículos) é o mínimo teórico de veículos para 25 clientes com capacidade 200? Como vocês sabem que não é só uma limitação do algoritmo?",
+     a:"Não, não é um limite inferior provado de veículos — é simplesmente para onde essa heurística gulosa e de orientação única converge. O fato de o GA depois encontrar soluções viáveis com apenas 4 veículos prova que 10 nunca foi um limite rígido de capacidade/janela — foi só um artefato da ordem de fusão gulosa e da restrição de orientação."}
+  ]
+},
+{
+  num:6, kicker:"CHECKPOINT 1 · 06", title:"Algoritmo Genético",
+  bullets:[
+    "Minimizamos: fitness = f1 + 50 × f2",
+    "Crossover: OX — preserva blocos de adjacência",
+    "Mutação: shuffle de índices (indpb 5%)",
+    "Seleção: torneio k=3 + elitismo",
+    "Parâmetros: pop 120 · 150 ger · cxpb 0.8 · mutpb 0.2",
+    "5 sementes: 343,57/4 · 303,02/4 · 309,50/5 · 307,89/5 · 266,08/4 (melhor)",
+    "Média: 306,0 ± 24,6 · 4,4 veículos — −45% em distância vs. baseline"
+  ],
+  notes:"População de 120, 150 gerações. Single-objective: fitness = f1 + 50·f2. OX preserva ordem relativa. 5 sementes; melhor foi f1=266 com 4 veículos, -45% vs baseline.",
+  translation:"Mostra como o GA single-objective transforma o problema multiobjetivo num escalar, via um peso de penalização fixo (λ=50 por veículo), e apresenta a maquinaria padrão de GA mais a análise de variância em 5 sementes como evidência de robustez (não um resultado de sorte).",
+  script:"Aqui escalarizamos o problema: fitness = f1 + 50×f2, ou seja, cada veículo a mais 'custa' o equivalente a 50 unidades de distância. Usamos crossover OX — necessário porque um crossover ingênuo geraria clientes repetidos — seleção por torneio com elitismo, e rodamos com 5 sementes diferentes para garantir que o resultado não foi sorte. A melhor semente chegou a 266 de distância com só 4 veículos: 45% melhor que o baseline.",
+  questions:[
+    {q:"Por que o peso da penalização de veículo é exatamente 50, e não outro valor? O que aconteceria se fosse muito maior ou muito menor?",
+     a:"50 é uma escolha de design fixa da proposta, pensada para que remover um veículo 'valha' aproximadamente 50 unidades de distância. Se fosse muito pequeno, o GA ignoraria f2 e só minimizaria distância crua (convergindo para muitas rotas curtas e baratas); se fosse muito grande, priorizaria excessivamente usar poucos veículos mesmo a um grande custo de distância — essa arbitrariedade do peso é justamente a justificativa prática para depois migrar ao NSGA-II, que explora todo o trade-off sem fixar um peso à mão."},
+    {q:"Um desvio-padrão de ±24,6 em f1 (8% da média) é 'bom' o suficiente para dizer que o algoritmo é robusto? Como vocês validariam isso rigorosamente?",
+     a:"Um desvio relativo de 8% entre 5 sementes indica sensibilidade moderada, mas não desprezível, à inicialização aleatória. Rigorosamente, 5 sementes é uma amostra pequena para afirmações estatísticas — uma validação mais robusta rodaria mais sementes (20-30), reportaria intervalos de confiança ou usaria um teste não-paramétrico (ex: Mann-Whitney) ao comparar configurações. A afirmação atual é descritiva, não testada estatisticamente."}
+  ]
+},
+{
+  num:7, kicker:"CHECKPOINT 2 · 07", title:"NSGA-II multiobjetivo",
+  bullets:[
+    "Otimiza f1 e f2 simultaneamente, sem agregá-los — devolve uma fronteira de Pareto",
+    "A domina B se é melhor/igual em tudo e estritamente melhor em ao menos um objetivo",
+    "Não-dominância classifica em fronts (front 1 = melhor)",
+    "Crowding distance preserva diversidade dentro do front",
+    "Fronteira com 30 gerações: HV = 1.280,7 — ainda fraca; 30 gerações é pouco"
+  ],
+  notes:"NSGA-II não soma os objetivos — otimiza em paralelo e devolve uma fronteira de Pareto de soluções não-dominadas. Com só 30 gerações a fronteira ainda é fraca, mas mostra o trade-off.",
+  translation:"Introduz os conceitos de otimização multiobjetivo de verdade — dominância de Pareto (definição formal) e os dois mecanismos de seleção do NSGA-II (ordenação por não-dominância para convergência, crowding distance para diversidade) — e mostra o resultado honestamente fraco com só 30 gerações, como um marco de checkpoint, não a resposta final.",
+  script:"Aqui damos a definição formal de dominância em termos simples, com um exemplo rápido: um carro A mais barato E mais rápido que um carro B domina B. Explicamos que o NSGA-II classifica a população em fronts por dominância e, dentro de um mesmo front, prefere soluções em regiões menos povoadas do espaço de objetivos, para manter a fronteira espalhada. Somos honestos: com 30 gerações não deu tempo de alcançar o resultado de ponto único do GA — isso é esperado e usado para motivar o CP3, com mais gerações e o warm-start.",
+  questions:[
+    {q:"O que exatamente é 'crowding distance', matematicamente, e por que ela é necessária além da dominância?",
+     a:"Crowding distance mede, para cada solução de um front, a soma das distâncias normalizadas até seus vizinhos mais próximos em cada objetivo (o tamanho médio dos lados do 'cubóide' formado pelos vizinhos). A dominância sozinha não consegue desempatar soluções mutuamente não-dominadas do mesmo front, então o NSGA-II usa crowding distance como critério de diversidade no truncamento/seleção, evitando que a população colapse num único aglomerado da fronteira."},
+    {q:"Por que a fronteira do NSGA-II com 30 gerações é pior (dominada) que o ponto único do GA que rodou 150 gerações? Isso não é uma falha do método multiobjetivo?",
+     a:"Não é falha metodológica, é uma comparação de orçamentos desiguais — o GA teve 150 gerações focadas num único objetivo escalarizado, enquanto o NSGA-II no CP2 teve só 30 gerações para simultaneamente descobrir E espalhar uma fronteira inteira. O relatório destaca isso explicitamente, e o CP3 confirma que, dando ao NSGA-II um orçamento comparável/maior (80 ger.) com warm-start, ele iguala e supera o melhor ponto do GA enquanto ainda entrega a fronteira completa de trade-off."}
+  ]
+},
+{
+  num:8, kicker:"DIFERENCIAL · D2 · 08", title:"Warm-start",
+  bullets:[
+    "Em vez de partir de 100% aleatório, semeamos a população inicial com soluções já boas",
+    "25% sementes boas · 75% aleatório (mantém diversidade genética)",
+    "Sementes: rota do baseline Clarke-Wright + melhor solução do GA (seed 5, f1=266)",
+    "Evolução de f1 em 80 gerações: aleatório começa em 686 → warm-start começa em 266"
+  ],
+  notes:"Semeamos 25% da população inicial com soluções boas — a rota Clarke-Wright e a melhor do GA. 75% aleatório para manter diversidade. O aleatório começa em 686 e chega a 421; o warm-start começa em 266 e mantém.",
+  translation:"É a contribuição própria do grupo (não só aplicar algoritmos de livro-texto) — um truque de inicialização simples e barato que injeta soluções conhecidas boas (Clarke-Wright + melhor GA) em um quarto da população inicial do NSGA-II, mantendo o resto aleatório para não perder diversidade/convergir prematuramente.",
+  script:"Analogia: em vez de começar a corrida do zero, 25% dos nossos 'corredores' já começam no quilômetro 5, usando rotas que já sabemos serem boas, enquanto os outros 75% ainda começam do zero para a população não perder diversidade genética. O efeito: o NSGA-II aleatório começa com f1≈686, o com warm-start já começa em f1≈266 — e ambos rodam as mesmas 80 gerações.",
+  questions:[
+    {q:"Por que exatamente 25%? Por que não 50% ou 100% da população semeada?",
+     a:"25% é um trade-off empírico — suficiente para puxar a qualidade média da população para cima e acelerar a convergência, mas baixo o bastante para preservar 75% de diversidade aleatória, evitando convergência prematura/perda de exploração que poderia ocorrer se toda a população começasse aglomerada em torno de só duas soluções conhecidas (o que também faria essas duas soluções dominarem os cálculos de crowding distance); a proposta trata essa fração como um hiperparâmetro ajustável, não algo derivado analiticamente."},
+    {q:"O warm-start não está enviesando a comparação, já que vocês usam a MESMA solução do GA (que rodou 150 gerações) como semente dentro do NSGA-II?",
+     a:"Sim, essa é uma escolha metodológica explícita e divulgada, não escondida — o objetivo do experimento não é provar que o NSGA-II é intrinsecamente melhor que o GA do zero, e sim mostrar que reaproveitar computação/conhecimento entre etapas de um pipeline (um passo de inicialização leve, de custo quase zero) é uma forma muito eficaz de combinar uma busca single-objective rápida com uma busca multiobjetivo mais lenta — é apresentado explicitamente como 'warm-start usando soluções já conhecidas como boas', então a origem da semente é transparente tanto no slide quanto no relatório."}
+  ]
+},
+{
+  num:9, kicker:"MÉTRICA · 09", title:"Hypervolume",
+  bullets:[
+    "Área dominada pela fronteira, limitada por r = (750, 12). Quanto maior, melhor.",
+    "30 gen · sem warm-start: HV = 1.280,7",
+    "80 gen · sem warm-start: HV = 1.901,8",
+    "80 gen · com warm-start: HV = 3.871,4",
+    "+104% — ganho do warm-start em Hypervolume"
+  ],
+  notes:"Hypervolume: área do espaço de objetivos dominada pela fronteira até um ponto de referência (750,12). Quanto maior, melhor. O warm-start mais que dobrou: de 1.902 para 3.871, +104%.",
+  translation:"Introduz o número único usado para comparar de forma justa fronteiras de tamanhos/formatos diferentes — a área (em 2D) do espaço de objetivos 'capturada'/dominada pela fronteira, limitada por um ponto de referência fixo de pior caso; área maior = fronteira melhor (mais convergência + mais espalhamento), e é o número que transforma 'o warm-start parece melhor no gráfico' em 'o warm-start é 104% melhor, quantitativamente'.",
+  script:"Visualizando: desenhamos uma caixa do canto ideal até o ponto de referência (750,12); a fronteira 'recorta' a área que ela domina dentro dessa caixa. Mais área = a fronteira está mais perto do ótimo e/ou cobre mais do espaço de trade-off. E aqui está o resultado principal: em 80 gerações, o HV vai de 1.901,8 (aleatório) para 3.871,4 (warm-start) — praticamente dobrando a 'qualidade' da fronteira encontrada para exatamente o mesmo orçamento computacional.",
+  questions:[
+    {q:"Como foi escolhido o ponto de referência r=(750,12), e o que aconteceria com o HV se vocês escolhessem um ponto diferente?",
+     a:"r precisa ser um ponto dominado por (pior que) toda solução já observada nos experimentos — escolhido como 750 (pior que o pior f1≈686 observado) e 12 (pior que o pior f2=10 observado). Valores de HV só são significativos/comparáveis quando calculados contra o MESMO ponto de referência — mudar r muda os números absolutos de HV (um r mais distante infla todos os HVs), mas comparações relativas entre fronteiras (qual é maior) permanecem robustas desde que se use o mesmo r consistentemente, como é feito aqui."},
+    {q:"Hypervolume tem alguma limitação como métrica de qualidade de fronteira multiobjetivo?",
+     a:"Sim — HV tende a favorecer os extremos/'joelhos' de fronteiras convexas e pode preferir uma fronteira com menos soluções bem espalhadas a uma com mais soluções levemente melhores mas muito agrupadas; também é computacionalmente caro em muitas dimensões (tranquilo com 2 objetivos aqui, mas escala mal — exponencialmente — se f3 fosse ativado); apesar disso, continua sendo a métrica de número único mais aceita porque captura simultaneamente convergência e diversidade, o que justifica a escolha do projeto por ela em vez de métricas mais simples como spread ou generational distance (que exigem conhecer a fronteira de Pareto verdadeira)."}
+  ]
+},
+{
+  num:10, kicker:"RESULTADOS · 10", title:"Comparação final",
+  bullets:[
+    "Baseline C&W: f1=556,5 · f2=10",
+    "GA média (5 seeds): f1=306,0±24,6 · f2=4,4",
+    "GA melhor (seed 5): f1=266,1 · f2=4",
+    "NSGA-II 30 gen: f1=483,7–524,0 · f2=7–9 · HV=1.281",
+    "NSGA-II 80 gen: f1=420,5 · f2=6 · HV=1.902",
+    "NSGA-II 80 gen + warm-start: f1=266,1 · f2=4 · HV=3.871",
+    "Mesmo melhor f1 do GA, porém com fronteira de Pareto completa — o decisor escolhe o trade-off"
+  ],
+  notes:"Resumo. O GA já reduziu distância em 45%. O NSGA-II com warm-start iguala o melhor f1 do GA MAS entrega uma fronteira completa — o tomador de decisão tem opções. HV 3.871 vs 1.902.",
+  translation:"É o 'slide de ouro' — consolida todos os métodos testados numa única tabela, para que a história de melhoria se leia da esquerda para a direita: baseline → GA → variantes do NSGA-II, terminando no argumento-chave de que o NSGA-II+warm-start não só iguala o melhor número do GA, entrega um menu inteiro de opções de trade-off igualmente boas.",
+  script:"Percorremos a tabela rapidamente, mas o peso da fala vai nas duas últimas linhas: mesmo f1=266,1 e f2=4 que o melhor ponto do GA, só que sustentado por uma fronteira de Pareto completa (HV=3.871) em vez de um único número — o que significa que um gestor de logística poderia escolher outro ponto dessa fronteira (mais veículos, menos distância) sem rodar nada de novo.",
+  questions:[
+    {q:"Se o NSGA-II com warm-start converge para o MESMO ponto (266,1 / 4) que o GA já tinha achado, o warm-start realmente 'descobriu' algo novo, ou só reencontrou a resposta que vocês já sabiam?",
+     a:"Crítica justa — já que a melhor solução do GA É uma das duas sementes injetadas no NSGA-II, chegar a f1=266 de novo não é uma descoberta nova isoladamente; o que o NSGA-II acrescenta é (a) verificar que esse ponto continua não-dominado depois de 80 gerações de busca multiobjetivo (ou seja, não existe combinação (f1,f2) conjunta melhor por perto), e (b) construir a fronteira de alternativas de trade-off ao redor dele — o resultado experimental real é o formato da fronteira e o hypervolume, não que uma coordenada bateu."},
+    {q:"Por que a fronteira do NSGA-II com warm-start tem apenas 1 solução não-dominada (segundo o summary.json: n_solutions=1), se a proposta é justamente entregar 'várias opções de trade-off' para o decisor?",
+     a:"É uma limitação real a reconhecer — nessa execução específica, todos os indivíduos da população convergiram/foram dominados até um único ponto ótimo (266,1 / 4) em vez de se manterem espalhados na fronteira. Isso poderia ser melhorado com uma execução mais longa, uma fração de sementes menor, ou ajuste explícito de preservação de diversidade; é honesto dizer que a execução com warm-start de 80 gerações neste projeto demonstra qualidade de convergência (via HV vs. o ponto único) de forma mais convincente do que diversidade de fronteira — e isso é uma área para trabalho futuro."}
+  ]
+},
+{
+  num:11, kicker:"CONCLUSÕES · 11", title:"Contribuições",
+  bullets:[
+    "01 Modelagem completa do VRPTW — giant-tour + split decoder",
+    "02 Comparação rigorosa de 3 abordagens: heurística, GA e NSGA-II",
+    "03 Warm-start com ganho comprovado: +104% em hypervolume",
+    "04 Métrica quantitativa (Hypervolume) para comparação objetiva",
+    "Trade-off: menos veículos implica rotas mais longas — o NSGA-II mapeia esse trade-off inteiro"
+  ],
+  notes:"Solução completa: baseline, GA e NSGA-II. Warm-start: alto impacto, baixo custo — mais que dobrou a fronteira. Hypervolume quantifica a melhoria.",
+  translation:"Resumo de fechamento reforçando as quatro contribuições reivindicadas e reafirmando o trade-off central de logística como a tese de toda a apresentação.",
+  script:"Recapitulamos os quatro pontos rapidamente e terminamos na frase de efeito: este é um projeto sobre dar ao tomador de decisão o panorama completo, não uma resposta única e falsamente precisa — menos veículos sempre custa mais distância, e o NSGA-II mapeia esse trade-off por inteiro.",
+  questions:[
+    {q:"Qual dessas quatro contribuições vocês diriam que é a mais 'original' do grupo, versus o que é só implementação de literatura conhecida?",
+     a:"A representação giant-tour+split, o GA e o NSGA-II são técnicas estabelecidas na literatura (decodificadores de split estilo Prins, operadores padrão do DEAP/pymoo); a estratégia de sementes do warm-start (misturar 25% de soluções já conhecidas + 75% aleatórias, combinando especificamente as saídas do Clarke-Wright e do GA como população inicial do NSGA-II) é a contribuição aplicada própria do grupo — todo o resto é uma aplicação rigorosa e bem executada de métodos consagrados, o que é um escopo legítimo e esperado para um projeto de disciplina."},
+    {q:"Quais são as limitações mais sérias que vocês reconhecem, e o que fariam com mais tempo?",
+     a:"(Do relatório, seção 6) — o baseline Clarke-Wright só tenta uma orientação de fusão (mais fraco que o C&W estado da arte); apenas uma instância foi testada (C101, 25 clientes), então a generalização para instâncias maiores/diferentes (R, RC, 100 clientes) não foi verificada; o objetivo ético de balanceamento de carga f3 está implementado mas nunca foi ativado nos experimentos; nenhuma hibridização com busca local (ex: NSGA-II + 2-opt/simulated annealing memético) foi tentada, apesar de mencionada na proposta original — com mais tempo, a prioridade seria testar em mais instâncias Solomon e acrescentar uma etapa de refinamento por busca local sobre os filhos do NSGA-II."}
+  ]
+}
+];
+
+const FLASHCARDS = [
+{q:"Por que o problema é modelado como um 'giant-tour' (permutação) em vez de variáveis binárias xᵢⱼₖ?", a:"Porque uma permutação simples permite reusar operadores genéticos padrão (crossover/mutação) sem precisar de mecanismos de reparo — a viabilidade das rotas fica garantida pelo decodificador (split), não pela representação."},
+{q:"O que o split decoder faz quando o próximo cliente da permutação violaria a janela de tempo?", a:"Fecha a rota atual naquele ponto e abre uma nova rota a partir do depósito para esse cliente — a infactibilidade é resolvida estruturalmente, não com penalização na função objetivo."},
+{q:"Qual é a fórmula de fitness do GA single-objective, e o que o termo '50×f2' representa?", a:"fitness = f1 + 50×f2. O termo 50×f2 é uma penalização linear que converte 'usar 1 veículo a mais' em um custo equivalente a 50 unidades de distância, transformando o problema multiobjetivo em um problema escalar de minimização."},
+{q:"Por que o GA usa Ordered Crossover (OX) em vez de crossover de um ponto?", a:"Porque crossover de um ponto ingênuo pode gerar filhos com clientes repetidos ou faltando; OX preserva a ordem relativa de blocos de genes garantindo que o filho continue sendo uma permutação válida."},
+{q:"O que significa dizer que a solução B é 'dominada' pela solução A?", a:"A domina B se A é igual ou melhor que B em todos os objetivos e estritamente melhor em pelo menos um. Se B é dominada, ela nunca é a melhor escolha, pois A é pelo menos tão boa quanto ela em tudo."},
+{q:"Qual é a diferença entre 'ordenação por não-dominância' e 'crowding distance' no NSGA-II?", a:"Não-dominância classifica os indivíduos em fronts (camadas de qualidade) — controla convergência. Crowding distance desempata indivíduos do MESMO front, favorecendo os que estão em regiões menos povoadas do espaço de objetivos — controla diversidade."},
+{q:"No diferencial de warm-start, de onde vêm as duas soluções usadas como 'sementes'?", a:"Da rota do baseline Clarke-Wright e da melhor solução encontrada pelo GA single-objective (semente 5, f1=266)."},
+{q:"Por que só 25% da população inicial é semeada no warm-start, e não 100%?", a:"Para acelerar a convergência sem perder diversidade genética — se toda a população partisse das mesmas 2 soluções, a busca ficaria presa perto delas, prejudicando a exploração de outras regiões do espaço de soluções."},
+{q:"O que o Hypervolume mede, intuitivamente?", a:"A área (em 2D) do espaço de objetivos dominada pela fronteira de Pareto, delimitada por um ponto de referência pior que todas as soluções observadas. Quanto maior a área, melhor a fronteira."},
+{q:"Qual foi o ganho percentual de Hypervolume do warm-start em relação ao NSGA-II aleatório, com o mesmo orçamento de 80 gerações?", a:"+103,6% (HV foi de 1.901,8 para 3.871,4)."},
+{q:"Qual é o resultado do baseline Clarke-Wright (f1, f2) na instância C101 com 25 clientes?", a:"f1 = 556,51 (distância) e f2 = 10 (veículos)."},
+{q:"Qual é a melhor solução encontrada pelo GA single-objective entre as 5 sementes testadas?", a:"Semente 5: f1 = 266,08, f2 = 4 veículos."},
+{q:"O que é f3 no projeto, e ele é usado nos resultados principais?", a:"f3 é o desbalanceamento de carga entre veículos (desvio-padrão das cargas), um diferencial ético (D6). Está implementado em instance.py e disponível em nsga2.py (use_f3_ethics=True), mas mantido desativado por padrão — os checkpoints reportam apenas (f1, f2)."},
+{q:"Qual biblioteca Python implementa o Algoritmo Genético do Checkpoint 1, e qual implementa o NSGA-II?", a:"DEAP para o GA single-objective (ga.py); pymoo para o NSGA-II multiobjetivo (nsga2.py)."},
+{q:"O que o elitismo garante no GA implementado?", a:"Que o melhor indivíduo de cada geração é sempre preservado na próxima geração — o fitness do melhor indivíduo nunca piora ao longo das gerações."},
+{q:"Qual é a limitação documentada da implementação do Clarke-Wright neste projeto?", a:"A fusão de rotas só é tentada em uma orientação fixa (extremidade final de uma rota com o início da outra) — não testa a rota invertida. É uma simplificação intencional que torna o baseline mais fraco que o C&W completo."},
+{q:"Por que otimizar (f1, f2) simultaneamente com NSGA-II é preferível a apenas somar os objetivos com pesos fixos?", a:"Porque a soma ponderada exige escolher pesos a priori (e pode não enxergar partes não-convexas da fronteira), enquanto o NSGA-II devolve o conjunto inteiro de soluções não-dominadas, deixando a escolha do trade-off para o tomador de decisão, a posteriori."},
+{q:"Qual ponto de referência foi usado para calcular o Hypervolume, e por que ele precisa ser dominado por todas as soluções?", a:"r = (750, 12). Ele precisa ser pior que qualquer solução observada para que o volume calculado entre a fronteira e r seja sempre positivo e represente de fato a região 'conquistada' pela fronteira."},
+{q:"A fronteira final do NSGA-II com warm-start (80 gerações) tem quantas soluções não-dominadas, segundo o summary.json, e o que isso revela?", a:"Apenas 1 solução (n_solutions=1). Isso revela que, nessa execução, a fronteira colapsou para um único ponto ótimo em vez de manter diversidade de trade-offs — uma limitação real a reconhecer, mesmo com o HV mais alto do projeto."},
+{q:"Quais são os quatro elementos básicos que definem uma instância do VRPTW, segundo o Slide 2?", a:"Depósito (ponto central único), Clientes (com demanda e coordenadas), Frota (veículos homogêneos, capacidade Q) e Janela de tempo (intervalo [eᵢ, lᵢ] de atendimento de cada cliente)."}
+];
+
+const QUIZ = [
+{q:"Qual é a principal razão para usar uma representação de 'giant-tour' (permutação) no lugar de variáveis binárias xᵢⱼₖ clássicas?",
+ opts:["Porque permutações ocupam menos memória que matrizes binárias","Porque permite reusar operadores genéticos padrão de permutação sem evoluir explicitamente o número de rotas","Porque é a única representação capaz de garantir a janela de tempo","Porque o pymoo não aceita variáveis binárias"],
+ correct:1, explain:"OX e operadores de permutação padrão funcionam diretamente sobre a permutação; o split decoder resolve a divisão em rotas separadamente."},
+{q:"O que acontece no split decoder quando adicionar o próximo cliente violaria a capacidade do veículo?",
+ opts:["O cliente é descartado da solução","A rota atual é fechada e uma nova rota é aberta a partir do depósito","A solução inteira é marcada como infactível e penalizada","O veículo aumenta temporariamente sua capacidade"],
+ correct:1, explain:"O split decoder fecha a rota corrente e inicia outra a partir do depósito — garantindo viabilidade estrutural, sem penalização na função objetivo."},
+{q:"No GA single-objective, qual é a fórmula de fitness usada?",
+ opts:["f1 × f2","f1 + 50×f2","f1 − f2","max(f1, f2)"],
+ correct:1, explain:"fitness = f1 + 50×f2, uma penalização linear que 'precifica' cada veículo extra em 50 unidades de distância."},
+{q:"O que caracteriza uma solução 'não-dominada' em otimização multiobjetivo?",
+ opts:["É a solução com o melhor valor médio entre todos os objetivos","Nenhuma outra solução é igual ou melhor em todos os objetivos e estritamente melhor em pelo menos um","É a única solução viável do problema","É a solução escolhida aleatoriamente pelo algoritmo"],
+ correct:1, explain:"É a definição formal de não-dominância / pertencimento à fronteira de Pareto."},
+{q:"Qual é a função da 'crowding distance' no NSGA-II?",
+ opts:["Ordenar os indivíduos por fitness","Preservar diversidade dentro de um mesmo front, evitando aglomeração em uma única região","Calcular a distância euclidiana até o depósito","Decidir quantas gerações o algoritmo deve rodar"],
+ correct:1, explain:"Crowding distance é o critério de diversidade usado para desempatar indivíduos do mesmo front de não-dominância."},
+{q:"No diferencial de warm-start, quais soluções são usadas para semear a população inicial do NSGA-II?",
+ opts:["Soluções geradas por um segundo algoritmo genético paralelo","A rota do baseline Clarke-Wright e a melhor solução do GA single-objective","Soluções aleatórias adicionais, além das já existentes","A fronteira de Pareto do Checkpoint 2"],
+ correct:1, explain:"As duas sementes usadas em SeededPermutationSampling são a rota Clarke-Wright e a melhor solução do GA (seed 5, f1=266)."},
+{q:"O que o Hypervolume mede?",
+ opts:["O tempo de execução do algoritmo","O número de gerações necessárias para convergir","A área do espaço de objetivos dominada pela fronteira, em relação a um ponto de referência","A diversidade genética da população inicial"],
+ correct:2, explain:"HV mede a área (ou volume, em mais dimensões) do espaço de objetivos dominada pela fronteira até um ponto de referência fixo."},
+{q:"Qual foi o ganho aproximado de Hypervolume obtido com o warm-start, comparado ao NSGA-II aleatório, ambos com 80 gerações?",
+ opts:["+10%","+50%","+104%","+300%"],
+ correct:2, explain:"HV foi de 1.901,8 (aleatório) para 3.871,4 (warm-start) — um ganho de +103,6%, arredondado para +104%."},
+{q:"Qual é a limitação documentada da implementação de Clarke-Wright usada como baseline?",
+ opts:["Não considera capacidade do veículo","Testa fusão de rotas apenas em uma orientação fixa, sem testar a rota invertida","Não converge para nenhuma solução viável","Usa mais veículos do que a frota disponível"],
+ correct:1, explain:"A fusão só é tentada numa orientação fixa (fim de uma rota com início da outra) — simplificação intencional documentada no relatório."},
+{q:"Por que f3 (desbalanceamento de carga) não aparece nos resultados principais dos checkpoints?",
+ opts:["Porque não foi implementado","Porque está implementado e disponível, mas foi mantido desativado por padrão para preservar o escopo (f1, f2) da proposta","Porque o pymoo não suporta 3 objetivos","Porque sempre vale zero na instância C101"],
+ correct:1, explain:"f3 está implementado em instance.py e disponível via use_f3_ethics=True em nsga2.py, mas os checkpoints reportam apenas (f1,f2) conforme o escopo da proposta."}
+];
+
+/* ================= RENDER: FUNDAMENTOS ================= */
+function renderFundamentos(){
+  const el = document.getElementById('fundamentosTimeline');
+  el.innerHTML = FUNDAMENTOS.map((s,i)=>`
+    <div class="tstep" data-n="${i+1}">
+      <div class="card">
+        <h3>${s.title}</h3>
+        <div class="analogy"><b>Analogia:</b> ${s.analogy}</div>
+        <div class="explain">${s.explain}</div>
+        <div class="connect">→ ${s.connect}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ================= RENDER: GLOSSARIO ================= */
+function slugify(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-');}
+
+function renderGlossary(filter=''){
+  const container = document.getElementById('glossContainer');
+  const f = filter.trim().toLowerCase();
+  let html = '';
+  let totalMatches = 0;
+  GLOSSARY.forEach(cat=>{
+    const items = cat.items.filter(it => !f || it.term.toLowerCase().includes(f) || it.what.toLowerCase().includes(f));
+    if(items.length===0) return;
+    totalMatches += items.length;
+    html += `<div class="gloss-cat"><h2>${cat.cat}</h2>`;
+    items.forEach(it=>{
+      const id = 'g-'+slugify(cat.cat)+'-'+slugify(it.term);
+      html += `
+      <div class="accordion-item" id="${id}">
+        <div class="accordion-header" onclick="toggleAccordion('${id}')">
+          <div class="htitle"><span class="term-tag">${it.term}</span></div>
+          <svg class="accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="accordion-body-wrap"><div class="accordion-body-inner"><div class="accordion-body">
+          <p><b>O que é:</b> ${it.what}</p>
+          <p><b>Para que serve neste projeto:</b> ${it.why}</p>
+          <p><b>Como explicar para a banca:</b> ${it.how}</p>
+        </div></div></div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  if(totalMatches===0){
+    html = `<div class="gloss-empty">Nenhum termo encontrado para "${filter}".</div>`;
+  }
+  container.innerHTML = html;
+}
+
+function toggleAccordion(id){
+  document.getElementById(id).classList.toggle('open');
+}
+
+/* ================= RENDER: RAIO-X ================= */
+let currentSlide = 1;
+function renderSlidePicker(){
+  const el = document.getElementById('slidePicker');
+  el.innerHTML = SLIDES.map(s=>`<button data-n="${s.num}" class="${s.num===currentSlide?'active':''}" onclick="selectSlide(${s.num})">${s.num}</button>`).join('');
+}
+function selectSlide(n){
+  currentSlide = n;
+  renderSlidePicker();
+  renderSlideDetail();
+}
+function renderSlideDetail(){
+  const s = SLIDES.find(x=>x.num===currentSlide);
+  const el = document.getElementById('slideDetail');
+  el.innerHTML = `
+    <div class="slide-mock">
+      <div class="kicker">${s.kicker}</div>
+      <h2>${s.title}</h2>
+      ${s.subtitle ? `<p style="position:relative;color:var(--accent-2);font-size:.85rem;margin:-8px 0 14px;">${s.subtitle}</p>`:''}
+      <ul>${s.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>
+    </div>
+    <div class="notes-box"><b>Notas originais do slide:</b> ${s.notes}</div>
+    <div class="raiox-grid">
+      <div class="rx-block">
+        <h3>Tradução mental</h3>
+        <div class="card">${s.translation}</div>
+      </div>
+      <div class="rx-block">
+        <h3>O que falar na hora</h3>
+        <div class="card">${s.script}</div>
+      </div>
+    </div>
+    <div class="rx-block" style="margin-top:18px;">
+      <h3>Possíveis perguntas da banca</h3>
+      ${s.questions.map((qa,i)=>`
+        <div class="qa-item">
+          <div class="q"><span class="qnum">P${i+1}.</span> ${qa.q}</div>
+          <button class="qa-reveal-btn" onclick="toggleAnswer(this)">Mostrar resposta ▾</button>
+          <div class="qa-answer">${qa.a}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+function toggleAnswer(btn){
+  const ans = btn.nextElementSibling;
+  ans.classList.toggle('show');
+  btn.textContent = ans.classList.contains('show') ? 'Ocultar resposta ▴' : 'Mostrar resposta ▾';
+}
+
+/* ================= RENDER: FLASHCARDS ================= */
+let flashOrder = FLASHCARDS.map((_,i)=>i);
+let flashIndex = 0;
+let flashFlipped = false;
+let flashKnown = new Set(JSON.parse(localStorage.getItem('vrptw_flash_known')||'[]'));
+
+function saveKnown(){ localStorage.setItem('vrptw_flash_known', JSON.stringify([...flashKnown])); }
+
+function currentFlashList(){
+  const onlyUnknown = document.getElementById('flashFilterUnknown').checked;
+  let ord = flashOrder.slice();
+  if(onlyUnknown) ord = ord.filter(i=>!flashKnown.has(i));
+  return ord;
+}
+
+function renderFlashcard(){
+  const ord = currentFlashList();
+  if(ord.length===0){
+    document.getElementById('flashQ').textContent = "Tudo revisado!";
+    document.getElementById('flashA').textContent = "Desmarque o filtro para ver todas as cartas de novo.";
+    document.getElementById('flashProgress').textContent = "0 / 0";
+    return;
+  }
+  if(flashIndex>=ord.length) flashIndex = 0;
+  if(flashIndex<0) flashIndex = ord.length-1;
+  const realIdx = ord[flashIndex];
+  const card = FLASHCARDS[realIdx];
+  document.getElementById('flashQ').textContent = card.q;
+  document.getElementById('flashA').textContent = card.a;
+  document.getElementById('flashProgress').textContent = `Carta ${flashIndex+1} / ${ord.length}  ·  ${flashKnown.size} já sabidas`;
+  document.getElementById('flashcard').classList.toggle('flipped', flashFlipped);
+}
+function flashGoto(delta){
+  flashFlipped = false;
+  flashIndex += delta;
+  renderFlashcard();
+}
+function flashMark(known){
+  const ord = currentFlashList();
+  const realIdx = ord[flashIndex];
+  if(known){ flashKnown.add(realIdx); } else { flashKnown.delete(realIdx); }
+  saveKnown();
+  flashGoto(1);
+}
+
+/* ================= RENDER: QUIZ ================= */
+let quizIndex = 0, quizScore = 0, quizAnswered = false;
+function renderQuiz(){
+  const el = document.getElementById('quizCard');
+  if(quizIndex >= QUIZ.length){
+    el.innerHTML = `
+      <div class="quiz-score">
+        <div class="big">${quizScore} / ${QUIZ.length}</div>
+        <p style="color:var(--text-dim);margin-top:6px;">acertos</p>
+        <button class="btn primary" onclick="quizRestart()">Refazer quiz</button>
+      </div>`;
+    return;
+  }
+  const q = QUIZ[quizIndex];
+  quizAnswered = false;
+  el.innerHTML = `
+    <div class="qhead">
+      <span class="pill">Pergunta ${quizIndex+1} / ${QUIZ.length}</span>
+      <span class="pill" style="background:rgba(52,211,153,.14);color:var(--accent-3);border-color:rgba(52,211,153,.3);">Pontos: ${quizScore}</span>
+    </div>
+    <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:${(quizIndex/QUIZ.length)*100}%"></div></div>
+    <div class="quiz-question">${q.q}</div>
+    <div class="quiz-options">
+      ${q.opts.map((o,i)=>`<button class="quiz-opt" data-i="${i}" onclick="quizAnswer(${i})">${o}</button>`).join('')}
+    </div>
+    <div id="quizExplainBox"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="btn primary" id="quizNextBtn" style="display:none" onclick="quizNext()">Próxima pergunta ▶</button>
+    </div>
+  `;
+}
+function quizAnswer(i){
+  if(quizAnswered) return;
+  quizAnswered = true;
+  const q = QUIZ[quizIndex];
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((btn,idx)=>{
+    btn.disabled = true;
+    if(idx===q.correct) btn.classList.add('correct');
+    else if(idx===i) btn.classList.add('incorrect');
+  });
+  if(i===q.correct) quizScore++;
+  document.getElementById('quizExplainBox').innerHTML = `<div class="quiz-explain"><b>${i===q.correct?'Correto.':'Não é essa.'}</b> ${q.explain}</div>`;
+  document.getElementById('quizNextBtn').style.display = 'inline-block';
+}
+function quizNext(){ quizIndex++; renderQuiz(); }
+function quizRestart(){ quizIndex=0; quizScore=0; renderQuiz(); }
+
+/* ================= NAV / TABS ================= */
+document.getElementById('mainTabs').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-view]');
+  if(!btn) return;
+  document.querySelectorAll('#mainTabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+btn.dataset.view).classList.add('active');
+});
+
+document.getElementById('recallTabs').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-pane]');
+  if(!btn) return;
+  document.querySelectorAll('#recallTabs button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.recall-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+btn.dataset.pane).classList.add('active');
+});
+
+document.getElementById('glossSearch').addEventListener('input', e=>renderGlossary(e.target.value));
+document.getElementById('glossExpandAll').addEventListener('click', ()=>{
+  document.querySelectorAll('.accordion-item').forEach(it=>it.classList.add('open'));
+});
+
+document.getElementById('flashcard').addEventListener('click', ()=>{ flashFlipped=!flashFlipped; document.getElementById('flashcard').classList.toggle('flipped', flashFlipped); });
+document.getElementById('flashFlip').addEventListener('click', (e)=>{ e.stopPropagation(); flashFlipped=!flashFlipped; document.getElementById('flashcard').classList.toggle('flipped', flashFlipped); });
+document.getElementById('flashPrev').addEventListener('click', ()=>flashGoto(-1));
+document.getElementById('flashNext').addEventListener('click', ()=>flashGoto(1));
+document.getElementById('flashShuffle').addEventListener('click', ()=>{
+  for(let i=flashOrder.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [flashOrder[i],flashOrder[j]]=[flashOrder[j],flashOrder[i]]; }
+  flashIndex=0; flashFlipped=false; renderFlashcard();
+});
+document.getElementById('flashKnow').addEventListener('click', ()=>flashMark(true));
+document.getElementById('flashDontKnow').addEventListener('click', ()=>flashMark(false));
+document.getElementById('flashFilterUnknown').addEventListener('change', ()=>{ flashIndex=0; flashFlipped=false; renderFlashcard(); });
+
+/* ================= INIT ================= */
+renderFundamentos();
+renderGlossary();
+renderSlidePicker();
+renderSlideDetail();
+renderFlashcard();
+renderQuiz();
+</script>
+</body>
+</html>
